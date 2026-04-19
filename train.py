@@ -75,8 +75,8 @@ def train_epoch(model, trainloader, optimizer, criterion, device, lambda_val, ep
         # Sparsity loss (L1 on gates)
         sparse_loss = model.calculate_sparsity_loss()
         
-        # Total loss with warmup: no sparsity for first 2 epochs (let model learn features first)
-        if epoch < 2:
+        # Total loss with warmup: no sparsity for first 5 epochs (let model learn features first)
+        if epoch < 5:
             total_loss = cls_loss
         else:
             total_loss = cls_loss + lambda_val * sparse_loss
@@ -203,10 +203,10 @@ def train_model(lambda_val, epochs=50, use_scheduler=False, save_dir='results'):
         scheduler.step()
         
         # Print progress
-        if (epoch + 1) % 5 == 0 or epoch == 0 or epoch == 1 or epoch == 2 or epoch == 3 or epoch == 4:
+        if (epoch + 1) % 5 == 0 or epoch < 7:
             # Get average gate value for debugging
             avg_gate = sum(layer.get_gates().mean().item() for layer in model.get_prunable_layers()) / 3
-            warmup_status = "[WARMUP - No Pruning]" if epoch < 2 else ""
+            warmup_status = "[WARMUP - No Pruning]" if epoch < 5 else ""
             print(f"Epoch [{epoch+1}/{epochs}] {warmup_status} "
                   f"Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.2f}% | "
                   f"Test Acc: {test_acc:.2f}% | Sparsity: {sparsity:.2f}% | "
@@ -334,8 +334,8 @@ def plot_training_curves(history, lambda_val, save_path='results/training_curves
 
 
 if __name__ == '__main__':
-    # Experiment with different lambda values (BALANCED for stable pruning)
-    lambda_values = [0.05, 0.1, 0.2]
+    # Experiment with different lambda values (HIGHER for actual pruning)
+    lambda_values = [0.1, 0.2, 0.5]
     
     all_results = []
     
