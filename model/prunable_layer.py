@@ -31,16 +31,18 @@ class PrunableLinear(nn.Module):
         self.reset_parameters()
     
     def reset_parameters(self):
-        """Initialize weights using Kaiming initialization and gates to positive values"""
+        """Initialize weights using Kaiming initialization and gates near zero"""
         nn.init.kaiming_uniform_(self.weight, a=5**0.5)
         if self.bias is not None:
             nn.init.zeros_(self.bias)
-        # Initialize gate_scores to positive values so sigmoid gives ~0.5-0.9 initially
-        nn.init.uniform_(self.gate_scores, 0.5, 2.0)
+        # Initialize gate_scores to small random values (sigmoid will give ~0.5)
+        # This is the sweet spot for gradients
+        nn.init.normal_(self.gate_scores, mean=0.0, std=0.1)
     
     def forward(self, x):
         """
         Forward pass with gated weights.
+        Uses moderate sigmoid (3x) for balanced pruning.
         
         Args:
             x: Input tensor of shape (batch_size, in_features)
@@ -48,8 +50,9 @@ class PrunableLinear(nn.Module):
         Returns:
             Output tensor of shape (batch_size, out_features)
         """
-        # Transform gate_scores to [0,1] range using sigmoid
-        gates = torch.sigmoid(self.gate_scores)
+        # Transform gate_scores to [0,1] range using moderate sigmoid
+        # Multiplying by 3 gives good gradient flow and pruning
+        gates = torch.sigmoid(3.0 * self.gate_scores)
         
         # Apply gates to weights (element-wise multiplication)
         pruned_weights = self.weight * gates
@@ -60,11 +63,11 @@ class PrunableLinear(nn.Module):
         return output
     
     def get_gates(self):
-        """Return current gate values (after sigmoid)"""
+        """Return current gate values (after moderate sigmoid)"""
         with torch.no_grad():
-            return torch.sigmoid(self.gate_scores)
+            return torch.sigmoid(3.0 * self.gate_scores)
     
-    def get_sparsity(self, threshold=1e-2):
+    def get_sparsity(self, threshold=0.3):
         """
         Calculate sparsity level (percentage of pruned weights).
         
@@ -79,13 +82,13 @@ class PrunableLinear(nn.Module):
         pruned_weights = (gates < threshold).sum().item()
         return 100.0 * pruned_weights / total_weights
     
-    def hard_prune(self, threshold=1e-2):
+    def hard_prune(self, threshold=0.3):
         """
         Permanently remove weights with gates below threshold.
         Sets corresponding weights to zero and freezes them.
         """
         with torch.no_grad():
-            gates = torch.sigmoid(self.gate_scores)
+            gates = torch.sigmoid(3.0 * self.gate_scores)
             mask = gates < threshold
             self.weight[mask] = 0.0
             # Set gate_scores to very negative value (sigmoid -> 0)
