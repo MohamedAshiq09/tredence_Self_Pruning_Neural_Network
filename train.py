@@ -12,20 +12,16 @@ from model.network import SelfPruningNet
 
 
 class LambdaScheduler:
-    """Dynamic lambda scheduling: start small, increase over epochs"""
+    """Dynamic lambda scheduling: linear increase over epochs"""
     
-    def __init__(self, initial_lambda, final_lambda, warmup_epochs, total_epochs):
-        self.initial_lambda = initial_lambda
-        self.final_lambda = final_lambda
-        self.warmup_epochs = warmup_epochs
+    def __init__(self, base_lambda, total_epochs):
+        self.base_lambda = base_lambda
         self.total_epochs = total_epochs
     
     def get_lambda(self, epoch):
-        if epoch < self.warmup_epochs:
-            return self.initial_lambda
-        else:
-            progress = (epoch - self.warmup_epochs) / (self.total_epochs - self.warmup_epochs)
-            return self.initial_lambda + (self.final_lambda - self.initial_lambda) * progress
+        # Simple linear increase: lambda grows with training
+        progress = epoch / self.total_epochs
+        return self.base_lambda * (1 + progress)
 
 
 def get_dataloaders(batch_size=128):
@@ -56,7 +52,7 @@ def get_dataloaders(batch_size=128):
     return trainloader, testloader
 
 
-def train_epoch(model, trainloader, optimizer, criterion, device, lambda_val):
+def train_epoch(model, trainloader, optimizer, criterion, device, lambda_val, epoch):
     """Train for one epoch"""
     model.train()
     running_loss = 0.0
@@ -79,8 +75,11 @@ def train_epoch(model, trainloader, optimizer, criterion, device, lambda_val):
         # Sparsity loss (L1 on gates)
         sparse_loss = model.calculate_sparsity_loss()
         
-        # Total loss
-        total_loss = cls_loss + lambda_val * sparse_loss
+        # Total loss with warmup: no sparsity for first 2 epochs (let model learn features first)
+        if epoch < 2:
+            total_loss = cls_loss
+        else:
+            total_loss = cls_loss + lambda_val * sparse_loss
         
         # Backward pass
         total_loss.backward()
@@ -157,9 +156,7 @@ def train_model(lambda_val, epochs=50, use_scheduler=False, save_dir='results'):
     # Lambda scheduler
     if use_scheduler:
         lambda_sched = LambdaScheduler(
-            initial_lambda=lambda_val * 0.1,
-            final_lambda=lambda_val,
-            warmup_epochs=10,
+            base_lambda=lambda_val,
             total_epochs=epochs
         )
     
@@ -184,7 +181,7 @@ def train_model(lambda_val, epochs=50, use_scheduler=False, save_dir='results'):
         
         # Train
         train_loss, cls_loss, sparse_loss, train_acc = train_epoch(
-            model, trainloader, optimizer, criterion, device, current_lambda
+            model, trainloader, optimizer, criterion, device, current_lambda, epoch
         )
         
         # Evaluate
@@ -206,14 +203,17 @@ def train_model(lambda_val, epochs=50, use_scheduler=False, save_dir='results'):
         scheduler.step()
         
         # Print progress
-        if (epoch + 1) % 5 == 0 or epoch == 0:
-            print(f"Epoch [{epoch+1}/{epochs}] "
+        if (epoch + 1) % 5 == 0 or epoch == 0 or epoch == 1 or epoch == 2 or epoch == 3 or epoch == 4:
+            # Get average gate value for debugging
+            avg_gate = sum(layer.get_gates().mean().item() for layer in model.get_prunable_layers()) / 3
+            warmup_status = "[WARMUP - No Pruning]" if epoch < 2 else ""
+            print(f"Epoch [{epoch+1}/{epochs}] {warmup_status} "
                   f"Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.2f}% | "
                   f"Test Acc: {test_acc:.2f}% | Sparsity: {sparsity:.2f}% | "
-                  f"Lambda: {current_lambda:.6f}")
+                  f"Lambda: {current_lambda:.6f} | Avg Gate: {avg_gate:.4f}")
         
-        # Save best model
-        if test_acc > best_acc:
+        # Save best model (only after warmup to ensure pruning has started)
+        if test_acc > best_acc and epoch >= 10:
             best_acc = test_acc
             torch.save({
                 'epoch': epoch,
@@ -334,8 +334,8 @@ def plot_training_curves(history, lambda_val, save_path='results/training_curves
 
 
 if __name__ == '__main__':
-    # Experiment with different lambda values
-    lambda_values = [0.0001, 0.001, 0.01]
+    # Experiment with different lambda values (BALANCED for stable pruning)
+    lambda_values = [0.05, 0.1, 0.2]
     
     all_results = []
     
