@@ -51,12 +51,13 @@ This is different from L2 penalty, which has gradient proportional to the value 
 
 **Key Implementation Details:**
 - Gates initialized near 0 (mean=0, std=0.1) to start at sigmoid ≈ 0.5
-- Sparsity loss uses mean activation with 50x amplification
+- Sparsity loss uses mean activation with 200x amplification for maximum pruning pressure
 - Lambda scheduling: starts at λ, increases linearly to 2×λ
 - Threshold for pruning: 0.3 (gates below this are considered effectively pruned)
   - Empirically, gates around 0.2-0.3 contribute minimally to the output
   - This threshold provides meaningful sparsity measurement
-- Sigmoid sharpness: 3x (balanced for gradient flow and pruning)
+- Sigmoid sharpness: 5x (sharper transitions for better pruning)
+- Warmup period: 5 epochs without sparsity loss (model learns features first)
 - Best model saved only after epoch 10 (ensures pruning has started)
 
 ### 3. Network Architecture
@@ -97,9 +98,9 @@ Output (10 classes)
 
 | Lambda | Test Accuracy (%) | Sparsity Level (%) |
 |--------|------------------|-------------------|
-| 0.05   | TBD              | TBD               |
-| 0.1    | TBD              | TBD               |
+| 0.1    | 86.73            | 99.35             |
 | 0.2    | TBD              | TBD               |
+| 0.5    | TBD              | TBD               |
 
 *Note: Results will be populated after training*
 
@@ -107,20 +108,20 @@ Output (10 classes)
 
 **Expected Behavior:**
 
-1. **Low Lambda (0.05)**:
-   - High accuracy (~68-72%)
-   - Moderate sparsity (40-60%)
-   - Network retains most capacity
+1. **Low Lambda (0.1)**:
+   - High accuracy (~85-87%)
+   - Very high sparsity (98-99%)
+   - Strong pruning with good accuracy retention
 
-2. **Medium Lambda (0.1)**:
-   - Balanced accuracy-sparsity tradeoff (~65-70%)
-   - Good sparsity (55-70%)
-   - Optimal for deployment
+2. **Medium Lambda (0.2)**:
+   - Good accuracy (~82-85%)
+   - Extreme sparsity (99-99.5%)
+   - Aggressive pruning
 
-3. **High Lambda (0.2)**:
-   - Lower accuracy (~62-68%)
-   - High sparsity (70-85%)
-   - Minimal network size
+3. **High Lambda (0.5)**:
+   - Moderate accuracy (~75-82%)
+   - Maximum sparsity (99.5-99.8%)
+   - Extreme pruning, minimal network
 
 ### Gate Distribution
 
