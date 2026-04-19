@@ -238,8 +238,8 @@ pydantic
 
 ```bash
 # Clone the repository
-git clone <your-repo-url>
-cd tredence_intern
+git clone https://github.com/MohamedAshiq09/tredence_Self_Pruning_Neural_Network
+cd tredence_Self_Pruning_Neural_Network
 
 # Install dependencies
 pip install -r requirements.txt
@@ -494,7 +494,7 @@ If you use this code for your research or projects, please cite:
 ```
 Self-Pruning Neural Network Implementation
 Tredence Analytics AI Engineering Internship Case Study
-2025
+2026
 ```
 
 ---
@@ -503,7 +503,7 @@ Tredence Analytics AI Engineering Internship Case Study
 
 **Candidate for AI Engineering Internship - Tredence Analytics**
 
-Submitted as part of the 2025 Cohort application process.
+Submitted as part of the 2026 Cohort application process.
 
 ---
 
@@ -513,22 +513,3 @@ This project is submitted as part of an internship application case study.
 
 ---
 
-## 🙏 Acknowledgments
-
-- Tredence Analytics for the challenging and educational case study
-- PyTorch team for the excellent deep learning framework
-- CIFAR-10 dataset creators for the benchmark dataset
-
----
-
-## 📧 Contact
-
-For questions or discussions about this implementation, please reach out through the internship application process.
-
----
-
-**Status**: ✅ Ready for Submission
-
-**Last Updated**: 2025
-
-**Test Status**: All tests passing ✓
