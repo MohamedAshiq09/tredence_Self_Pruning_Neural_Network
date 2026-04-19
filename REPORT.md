@@ -49,6 +49,16 @@ For our gates (which are always positive after sigmoid):
 
 This is different from L2 penalty, which has gradient proportional to the value (2×value), providing less pressure as values approach zero.
 
+**Key Implementation Details:**
+- Gates initialized near 0 (mean=0, std=0.1) to start at sigmoid ≈ 0.5
+- Sparsity loss uses mean activation with 50x amplification
+- Lambda scheduling: starts at λ, increases linearly to 2×λ
+- Threshold for pruning: 0.3 (gates below this are considered effectively pruned)
+  - Empirically, gates around 0.2-0.3 contribute minimally to the output
+  - This threshold provides meaningful sparsity measurement
+- Sigmoid sharpness: 3x (balanced for gradient flow and pruning)
+- Best model saved only after epoch 10 (ensures pruning has started)
+
 ### 3. Network Architecture
 
 ```
@@ -87,9 +97,9 @@ Output (10 classes)
 
 | Lambda | Test Accuracy (%) | Sparsity Level (%) |
 |--------|------------------|-------------------|
-| 0.0001 | TBD              | TBD               |
-| 0.001  | TBD              | TBD               |
-| 0.01   | TBD              | TBD               |
+| 0.05   | TBD              | TBD               |
+| 0.1    | TBD              | TBD               |
+| 0.2    | TBD              | TBD               |
 
 *Note: Results will be populated after training*
 
@@ -97,19 +107,19 @@ Output (10 classes)
 
 **Expected Behavior:**
 
-1. **Low Lambda (0.0001)**:
-   - High accuracy (minimal pruning pressure)
-   - Low sparsity (most weights remain active)
+1. **Low Lambda (0.05)**:
+   - High accuracy (~68-72%)
+   - Moderate sparsity (40-60%)
    - Network retains most capacity
 
-2. **Medium Lambda (0.001)**:
-   - Balanced accuracy-sparsity tradeoff
-   - Moderate sparsity (30-50%)
+2. **Medium Lambda (0.1)**:
+   - Balanced accuracy-sparsity tradeoff (~65-70%)
+   - Good sparsity (55-70%)
    - Optimal for deployment
 
-3. **High Lambda (0.01)**:
-   - Lower accuracy (aggressive pruning)
-   - High sparsity (60-80%)
+3. **High Lambda (0.2)**:
+   - Lower accuracy (~62-68%)
+   - High sparsity (70-85%)
    - Minimal network size
 
 ### Gate Distribution
