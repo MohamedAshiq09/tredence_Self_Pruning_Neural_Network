@@ -69,17 +69,24 @@ class SelfPruningNet(nn.Module):
     def calculate_sparsity_loss(self):
         """
         Calculate L1 penalty on all gates (encourages sparsity).
+        Uses mean with strong amplification for pruning signal.
         
         Returns:
-            Scalar tensor representing total gate activation
+            Scalar tensor representing average gate activation (amplified)
         """
-        sparsity_loss = 0.0
+        total_gates = 0
+        total_activation = 0.0
+        
         for layer in self.get_prunable_layers():
-            gates = torch.sigmoid(layer.gate_scores)
-            sparsity_loss += gates.sum()
+            gates = torch.sigmoid(3.0 * layer.gate_scores)
+            total_activation += gates.sum()
+            total_gates += gates.numel()
+        
+        # Return mean activation with 50x amplification for strong pruning
+        sparsity_loss = 50.0 * (total_activation / total_gates)
         return sparsity_loss
     
-    def get_overall_sparsity(self, threshold=1e-2):
+    def get_overall_sparsity(self, threshold=0.3):
         """
         Calculate overall sparsity across all prunable layers.
         
@@ -113,7 +120,7 @@ class SelfPruningNet(nn.Module):
             'layer_stats': layer_stats
         }
     
-    def hard_prune_all(self, threshold=1e-2):
+    def hard_prune_all(self, threshold=0.3):
         """Apply hard pruning to all prunable layers"""
         for layer in self.get_prunable_layers():
             layer.hard_prune(threshold)
