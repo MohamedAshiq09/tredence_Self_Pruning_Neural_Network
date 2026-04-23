@@ -23,20 +23,8 @@ wheels/
 .installed.cfg
 *.egg
 
-# PyTorch
-*.pth
-*.pt
-
-# Data
+# Data (CIFAR-10 dataset - too large for git)
 data/
-*.pkl
-*.pickle
-
-# Results
-results/
-*.png
-*.jpg
-*.jpeg
 
 # IDE
 .vscode/
