@@ -236,7 +236,7 @@ We trained three models with different lambda values to demonstrate the accuracy
 
 #### Gate Distribution (Lambda = 0.1)
 
-![Gate Distribution](results/lambda_0.1/gate_distribution.png)
+![Gate Distribution](/home/ash09/tredence_intern/results/lambda_0.1/gate_distribution.png)
 
 The gate distribution shows a clear **bimodal pattern**:
 - **Large spike near 0**: Pruned weights (gates collapsed to zero)
